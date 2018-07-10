@@ -139,6 +139,7 @@ static char UIScrollViewPullToRefreshView;
     
     if(!showsPullToRefresh) {
         if (self.pullToRefreshView.isObserving) {
+            [self removeObserver:self.pullToRefreshView forKeyPath:@"contentInset"];
             [self removeObserver:self.pullToRefreshView forKeyPath:@"contentOffset"];
             [self removeObserver:self.pullToRefreshView forKeyPath:@"contentSize"];
             [self removeObserver:self.pullToRefreshView forKeyPath:@"frame"];
@@ -148,6 +149,7 @@ static char UIScrollViewPullToRefreshView;
     }
     else {
         if (!self.pullToRefreshView.isObserving) {
+            [self addObserver:self.pullToRefreshView forKeyPath:@"contentInset" options:NSKeyValueObservingOptionNew context:nil];
             [self addObserver:self.pullToRefreshView forKeyPath:@"contentOffset" options:NSKeyValueObservingOptionNew context:nil];
             [self addObserver:self.pullToRefreshView forKeyPath:@"contentSize" options:NSKeyValueObservingOptionNew context:nil];
             [self addObserver:self.pullToRefreshView forKeyPath:@"frame" options:NSKeyValueObservingOptionNew context:nil];
@@ -202,6 +204,7 @@ static char UIScrollViewPullToRefreshView;
         if (scrollView.showsPullToRefresh) {
             if (self.isObserving) {
                 //If enter this branch, it is the moment just before "SVPullToRefreshView's dealloc", so remove observer here
+                [scrollView removeObserver:self forKeyPath:@"contentInset"];
                 [scrollView removeObserver:self forKeyPath:@"contentOffset"];
                 [scrollView removeObserver:self forKeyPath:@"contentSize"];
                 [scrollView removeObserver:self forKeyPath:@"frame"];
@@ -285,9 +288,15 @@ static char UIScrollViewPullToRefreshView;
         }
         self.frame = CGRectMake(0, yOrigin, self.bounds.size.width, SVPullToRefreshViewHeight);
     }
-    else if([keyPath isEqualToString:@"frame"])
+    else if([keyPath isEqualToString:@"frame"]) {
         [self layoutSubviews];
-
+    }
+    else if ([keyPath isEqualToString:@"contentInset"]) {
+        if (self.state != SVPullToRefreshStateLoading) {
+            self.originalTopInset = self.scrollView.contentInset.top;
+            self.originalBottomInset = self.scrollView.contentInset.bottom;
+        }
+    }
 }
 
 - (void)scrollViewDidScroll:(CGPoint)contentOffset {
